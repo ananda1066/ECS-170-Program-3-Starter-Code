@@ -50,7 +50,7 @@ class QLearner(nn.Module):
             # TODO: Given state, you should write code to get the Q value and chosen action
 
             q_value = self.forward(state)
-            action = q_value.max(1)[1].data.numpy()
+            action = q_value.max(1)[1].data.detach().cpu().clone().numpy()
         else:
             action = random.randrange(self.env.action_space.n)
         return action
