@@ -62,7 +62,6 @@ for frame_idx in range(1, num_frames + 1):
 
     state = next_state
     episode_reward += reward
-    reward_file.write(str(frame_idx) + " " + str(reward) + "\r\n")
 
     if done:
         state = env.reset()
@@ -75,7 +74,6 @@ for frame_idx in range(1, num_frames + 1):
         loss.backward()
         optimizer.step()
         losses.append((frame_idx, loss.data.cpu().numpy()))
-        loss_file.write(str(frame_idx) + " " + str(loss.data.cpu().numpy()) + "\r\n")
 
     if frame_idx % 10000 == 0 and len(replay_buffer) <= replay_initial:
         print('#Frame: %d, preparing replay buffer' % frame_idx)
@@ -83,10 +81,16 @@ for frame_idx in range(1, num_frames + 1):
     if frame_idx % 10000 == 0 and len(replay_buffer) > replay_initial:
         print('#Frame: %d, Loss: %f' % (frame_idx, np.mean(losses, 0)[1]))
         print('Last-10 average reward: %f' % np.mean(all_rewards[-10:], 0)[1])
-        torch.save(model.state_dict(), "model.pth")
+        torch.save(model.state_dict(), "model_2.pth")
 
     if frame_idx % 50000 == 0:
         target_model.copy_from(model)
 
+for loss_pair in losses:
+    loss_file.write(str(loss_pair[0]) + " " + str(loss_pair[1]) + "\r\n")
+
+for reward_pair in all_rewards:
+    reward_file.write(str(reward_pair[0]) + " " + str(reward_pair[1]) + "\r\n")
+    
 loss_file.close()
 reward_file.close()

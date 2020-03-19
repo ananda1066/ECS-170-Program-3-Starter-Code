@@ -47,9 +47,11 @@ class QLearner(nn.Module):
     def act(self, state, epsilon):
         if random.random() > epsilon:
             state = Variable(torch.FloatTensor(np.float32(state)).unsqueeze(0), requires_grad=True)
-            # TODO: Given state, you should write code to get the Q value and chosen action
 
+            # get Q values of state
             q_values = self.forward(state)
+
+            # choose action with maximum Q value
             action = q_values.data.cpu().numpy().argmax(axis=-1)[0]
         else:
             action = random.randrange(self.env.action_space.n)
@@ -67,18 +69,21 @@ def compute_td_loss(model, target_model, batch_size, gamma, replay_buffer):
     action = Variable(torch.LongTensor(action))
     reward = Variable(torch.FloatTensor(reward))
     done = Variable(torch.FloatTensor(done))
-    # implement the loss function here
 
+    # get predicted Q values of state
     q_values = model(state)
-    q_state_values_next = target_model(next_state)
 
-    predicted_qvalues_for_actions = q_values[range(len(action)), action]
+    # filter to get only predicted Q values for actions in batch
+    q_values = q_values[range(len(action)), action]
 
-    next_state_values = torch.max(q_state_values_next, dim=1)[0]
+    # get actual Q values of next state
+    q_values_next = target_model(next_state)
 
-    target_qvalues_for_actions = reward + gamma * next_state_values * (1 - done)
+    # get actual updated Q values using reward + gamma * max(Q) * (1 - done)
+    actual_q_values = reward + gamma * torch.max(q_values_next, dim=1)[0] * (1 - done)
 
-    loss = torch.mean((predicted_qvalues_for_actions - target_qvalues_for_actions.detach()) ** 2)
+    # loss = mean((predicted Q values - actual updated Q values) ^ 2)
+    loss = torch.mean((q_values - actual_q_values.detach()) ** 2)
 
     return loss
 
@@ -94,7 +99,6 @@ class ReplayBuffer(object):
         self.buffer.append((state, action, reward, next_state, done))
 
     def sample(self, batch_size):
-        # TODO: Randomly sampling data with specific batch size from the buffer
         state, action, reward, next_state, done = zip(*random.sample(self.buffer, batch_size))
         return np.concatenate(state), action, reward, next_state, done
 
