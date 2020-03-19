@@ -72,7 +72,7 @@ def compute_td_loss(model, target_model, batch_size, gamma, replay_buffer):
     q_values = model(state)
     q_state_values_next = target_model(next_state)
 
-    predicted_qvalues_for_actions = q_values[range(len(actions)), actions]
+    predicted_qvalues_for_actions = q_values[range(len(action)), action]
 
     next_state_values = torch.max(q_state_values_next, dim=1)[0]
 
