@@ -76,9 +76,7 @@ def compute_td_loss(model, target_model, batch_size, gamma, replay_buffer):
 
     next_state_values = torch.max(q_state_values_next, dim=1)[0]
 
-    next_state_values = next_state_values * (1 - done)
-
-    target_qvalues_for_actions = reward + gamma * next_state_values
+    target_qvalues_for_actions = reward + gamma * next_state_values * (1 - done)
 
     loss = torch.mean((predicted_qvalues_for_actions - target_qvalues_for_actions.detach()) ** 2)
 
