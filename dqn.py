@@ -28,32 +28,29 @@ class QLearner(nn.Module):
             nn.Conv2d(64, 64, kernel_size=3, stride=1),
             nn.ReLU()
         )
-        
+
         self.fc = nn.Sequential(
             nn.Linear(self.feature_size(), 512),
             nn.ReLU(),
             nn.Linear(512, self.num_actions)
         )
-        
+
     def forward(self, x):
         x = self.features(x)
         x = x.view(x.size(0), -1)
         x = self.fc(x)
         return x
-    
+
     def feature_size(self):
             return self.features(autograd.Variable(torch.zeros(1, *self.input_shape))).view(1, -1).size(1)
-    
+
     def act(self, state, epsilon):
         if random.random() > epsilon:
             state = Variable(torch.FloatTensor(np.float32(state)).unsqueeze(0), requires_grad=True)
             # TODO: Given state, you should write code to get the Q value and chosen action
-        
 
-
-
-
-
+            q_value = self.forward(state)
+            action = q_value.max(1)[1].data.numpy()
         else:
             action = random.randrange(self.env.action_space.n)
         return action
@@ -61,7 +58,7 @@ class QLearner(nn.Module):
     def copy_from(self, target):
         self.load_state_dict(target.state_dict())
 
-        
+
 def compute_td_loss(model, target_model, batch_size, gamma, replay_buffer):
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
@@ -72,8 +69,16 @@ def compute_td_loss(model, target_model, batch_size, gamma, replay_buffer):
     done = Variable(torch.FloatTensor(done))
     # implement the loss function here
 
+    q_values = model(state)
+    q_values_next = model(next_state)
 
-    
+    q_value = q_values.gather(1, action).squeeze(1)
+
+    q_value_next =  q_values_next.max(1)[0]
+    expected_q_value = reward + gamma * q_value_next * (1 - done)
+
+    loss = (q_value - Variable(expected_q_value.data)).pow(2).mean()
+
     return loss
 
 
@@ -89,8 +94,7 @@ class ReplayBuffer(object):
 
     def sample(self, batch_size):
         # TODO: Randomly sampling data with specific batch size from the buffer
-
-
+        state, action, reward, next_state, done = zip(*random.sample(self.memory, batch_size))
         return state, action, reward, next_state, done
 
     def __len__(self):
