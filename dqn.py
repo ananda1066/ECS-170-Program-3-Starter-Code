@@ -70,15 +70,17 @@ def compute_td_loss(model, target_model, batch_size, gamma, replay_buffer):
     # implement the loss function here
 
     q_values = model(state)
-    q_values_next = model(next_state)
     q_state_values_next = target_model(next_state)
 
-    q_value = q_values.gather(1, action).squeeze(1)
-    q_value_next =  q_state_values_next.gather(1, torch.max(q_values_next, 1)[1].unsqueeze(1)).squeeze(1)
+    predicted_qvalues_for_actions = q_values[range(len(actions)), actions]
 
-    expected_q_value = reward + gamma * q_value_next * (1 - done)
+    next_state_values = torch.max(q_state_values_next, dim=1)[0]
 
-    loss = (q_value - Variable(expected_q_value.data)).pow(2).mean()
+    next_state_values = next_state_values * (1 - done)
+
+    target_qvalues_for_actions = rewards + gamma * next_state_values
+
+    loss = torch.mean((predicted_qvalues_for_actions - target_qvalues_for_actions.detach()) ** 2)
 
     return loss
 
@@ -96,7 +98,7 @@ class ReplayBuffer(object):
     def sample(self, batch_size):
         # TODO: Randomly sampling data with specific batch size from the buffer
         state, action, reward, next_state, done = zip(*random.sample(self.buffer, batch_size))
-        return np.concatenate(state), action, reward, next_state, done
+        return np.concatenate(state), action, reward, np.concatenate(next_state), done
 
     def __len__(self):
         return len(self.buffer)
