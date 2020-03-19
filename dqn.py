@@ -42,7 +42,7 @@ class QLearner(nn.Module):
         return x
 
     def feature_size(self):
-            return self.features(autograd.Variable(torch.zeros(1, *self.input_shape))).view(1, -1).size(1)
+        return self.features(autograd.Variable(torch.zeros(1, *self.input_shape))).view(1, -1).size(1)
 
     def act(self, state, epsilon):
         if random.random() > epsilon:
@@ -59,28 +59,27 @@ class QLearner(nn.Module):
         self.load_state_dict(target.state_dict())
 
 
-def compute_td_loss(model, target_model, batch_size, gamma, replay_buffer):
-    state, action, reward, next_state, done = replay_buffer.sample(batch_size)
+    def compute_td_loss(model, target_model, batch_size, gamma, replay_buffer):
+        state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
-    state = Variable(torch.FloatTensor(np.float32(state)))
-    next_state = Variable(torch.FloatTensor(np.float32(next_state)).squeeze(1), requires_grad=True)
-    action = Variable(torch.LongTensor(action))
-    reward = Variable(torch.FloatTensor(reward))
-    done = Variable(torch.FloatTensor(done))
-    # implement the loss function here
+        state = Variable(torch.FloatTensor(np.float32(state)))
+        next_state = Variable(torch.FloatTensor(np.float32(next_state)).squeeze(1), requires_grad=True)
+        action = Variable(torch.LongTensor(action))
+        reward = Variable(torch.FloatTensor(reward))
+        done = Variable(torch.FloatTensor(done))
 
-    q_values = model(state)
-    q_state_values_next = target_model(next_state)
+        q_values = model(state)
+        q_state_values_next = target_model(next_state)
 
-    predicted_qvalues_for_actions = q_values[range(len(action)), action]
+        predicted_qvalues_for_actions = q_values[range(len(action)), action]
 
-    next_state_values = torch.max(q_state_values_next, dim=1)[0]
+        next_state_values = torch.max(q_state_values_next, dim=1)[0]
 
-    target_qvalues_for_actions = reward + gamma * next_state_values * (1 - done)
+        target_qvalues_for_actions = reward + gamma * next_state_values * (1 - done)
 
-    loss = torch.mean((predicted_qvalues_for_actions - target_qvalues_for_actions.detach()) ** 2)
+        loss = torch.mean((predicted_qvalues_for_actions - target_qvalues_for_actions.detach()) ** 2)
 
-    return loss
+        return loss
 
 
 class ReplayBuffer(object):
