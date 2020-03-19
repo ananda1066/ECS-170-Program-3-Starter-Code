@@ -49,8 +49,8 @@ class QLearner(nn.Module):
             state = Variable(torch.FloatTensor(np.float32(state)).unsqueeze(0), requires_grad=True)
             # TODO: Given state, you should write code to get the Q value and chosen action
 
-            q_value = self.forward(state)
-            action = q_value.max(1)[1].data.detach().cpu().clone().numpy()
+            q_values = self.forward(state)
+            action = q_values.data.cpu().numpy().argmax(axis=-1)[0]
         else:
             action = random.randrange(self.env.action_space.n)
         return action
@@ -71,10 +71,11 @@ def compute_td_loss(model, target_model, batch_size, gamma, replay_buffer):
 
     q_values = model(state)
     q_values_next = model(next_state)
+    q_state_values_next = target_model(next_state)
 
     q_value = q_values.gather(1, action).squeeze(1)
+    q_value_next =  q_state_values_next.gather(1, torch.max(q_values_next, 1)[1].unsqueeze(1)).squeeze(1)
 
-    q_value_next =  q_values_next.max(1)[0]
     expected_q_value = reward + gamma * q_value_next * (1 - done)
 
     loss = (q_value - Variable(expected_q_value.data)).pow(2).mean()
