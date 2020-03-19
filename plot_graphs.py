@@ -6,4 +6,4 @@ with open('losses.txt') as f:
     y = [line.split()[1] for line in lines]
 
 plt.plot(x ,y)
-plt.show()
+plt.savefig("losses_plot.png")
